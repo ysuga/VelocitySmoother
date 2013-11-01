@@ -15,6 +15,7 @@
 #include <rtm/CorbaPort.h>
 #include <rtm/DataInPort.h>
 #include <rtm/DataOutPort.h>
+#include <rtm/ConnectorListener.h>
 #include <rtm/idl/BasicDataTypeSkel.h>
 #include <rtm/idl/ExtendedDataTypesSkel.h>
 #include <rtm/idl/InterfaceDataTypesSkel.h>
@@ -31,6 +32,10 @@
 
 using namespace RTC;
 
+
+
+
+ 
 /*!
  * @class VelocitySmoother
  * @brief Velocity Smoother RTC
@@ -274,8 +279,57 @@ class VelocitySmoother
   // <rtc-template block="private_operation">
   
   // </rtc-template>
+public:
+  void writeVelocity(double vx, double vy, double vz) {
+    m_out.data.vx = vx;
+    m_out.data.vy = vy;
+    m_out.data.va = vz;
+    m_outOut.write();
+  }
+
+  double getGain() {
+    return m_gain;
+  }
 
 };
+
+
+class DataListener
+  : public ConnectorDataListenerT<RTC::TimedVelocity2D>
+{
+public:
+  DataListener(VelocitySmoother* rtc) : m_parent(rtc), vx(0), vy(0), vz(0) {}
+  virtual ~DataListener()
+  {
+    //std::cout << "dtor of " << m_name << std::endl;
+  }
+
+  virtual void operator()(const ConnectorInfo& info,
+                          const RTC::TimedVelocity2D& data)
+  {
+    
+    double gain = m_parent->getGain();
+    double dv = data.data.vx - vx;
+    if (dv < 0 && dv < -gain) { dv = -gain; }
+    else if (dv > 0 && dv > gain) { dv = gain; }
+    vx += dv;
+    std::cout << "------------------------------"   << std::endl;
+    std::cout << "vx : " << vx << std::endl;
+    std::cout << "------------------------------"   << std::endl;
+
+    dv = data.data.va - vz;
+    if (dv < 0 && dv < -gain) { dv = -gain; }
+    else if (dv > 0 && dv > gain) { dv = gain; }
+    vz += dv;
+
+    m_parent->writeVelocity(vx, vy, vz);
+  };
+  
+
+  VelocitySmoother *m_parent;
+  double vx, vy, vz;
+};
+
 
 
 extern "C"

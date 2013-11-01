@@ -25,7 +25,7 @@ static const char* velocitysmoother_spec[] =
     "language",          "C++",
     "lang_type",         "compile",
     // Configuration variables
-    "conf.default.gain", "1.0",
+    "conf.default.gain", "0.1",
     // Widget
     "conf.__widget__.gain", "text",
     // Constraints
@@ -62,7 +62,8 @@ RTC::ReturnCode_t VelocitySmoother::onInitialize()
   // <rtc-template block="registration">
   // Set InPort buffers
   addInPort("in", m_inIn);
-  
+  m_inIn.addConnectorDataListener(ON_BUFFER_WRITE,
+				  new DataListener(this));
   // Set OutPort buffer
   addOutPort("out", m_outOut);
   
@@ -76,7 +77,7 @@ RTC::ReturnCode_t VelocitySmoother::onInitialize()
 
   // <rtc-template block="bind_config">
   // Bind variables and configuration variable
-  bindParameter("gain", m_gain, "1.0");
+  bindParameter("gain", m_gain, "0.1");
   // </rtc-template>
   
   return RTC::RTC_OK;
