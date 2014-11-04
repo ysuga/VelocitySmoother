@@ -307,20 +307,24 @@ public:
   virtual void operator()(const ConnectorInfo& info,
                           const RTC::TimedVelocity2D& data)
   {
-    
+    static int stdout_counter;
     double gain = m_parent->getGain();
-    double dv = data.data.vx - vx;
-    if (dv < 0 && dv < -gain) { dv = -gain; }
-    else if (dv > 0 && dv > gain) { dv = gain; }
-    vx += dv;
-    std::cout << "------------------------------"   << std::endl;
-    std::cout << "vx : " << vx << std::endl;
-    std::cout << "------------------------------"   << std::endl;
+    double dvx = data.data.vx - vx;
+    if (dvx < 0 && dvx < -gain) { dvx = -gain; }
+    else if (dvx > 0 && dvx > gain) { dvx = gain; }
+    vx += dvx;
 
-    dv = data.data.va - vz;
-    if (dv < 0 && dv < -gain) { dv = -gain; }
-    else if (dv > 0 && dv > gain) { dv = gain; }
-    vz += dv;
+
+    double dvz = data.data.va - vz;
+    if (dvz < 0 && dvz < -gain) { dvz = -gain; }
+    else if (dvz > 0 && dvz > gain) { dvz = gain; }
+    vz += dvz;
+
+    stdout_counter++;
+    if (stdout_counter % 10 == 0) {
+      std::cout << "[RTC:VelocitySmoother] vx / target = " << vx  << " / " << data.data.vx << " / " << dvx << std::endl;
+      std::cout << "[RTC:VelocitySmoother] vz / target = " << vz  << " / " << data.data.va << " / " << dvz << std::endl;
+    }
 
     m_parent->writeVelocity(vx, vy, vz);
   };
