@@ -235,6 +235,10 @@ class VelocitySmoother
    */
   float m_gain;
 
+  float m_ax;
+  float m_ay;
+  float m_aa;
+
   // </rtc-template>
 
   // DataInPort declaration

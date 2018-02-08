@@ -25,7 +25,10 @@ static const char* velocitysmoother_spec[] =
     "language",          "C++",
     "lang_type",         "compile",
     // Configuration variables
-    "conf.default.gain", "0.1",
+    // "conf.default.gain", "0.1",
+	"conf.default.ax", "0.1",
+	"conf.default.ay", "0.1",
+	"conf.default.aa", "0.1",
     // Widget
     "conf.__widget__.gain", "text",
     // Constraints
@@ -62,8 +65,8 @@ RTC::ReturnCode_t VelocitySmoother::onInitialize()
   // <rtc-template block="registration">
   // Set InPort buffers
   addInPort("in", m_inIn);
-  m_inIn.addConnectorDataListener(ON_BUFFER_WRITE,
-				  new DataListener(this));
+  //m_inIn.addConnectorDataListener(ON_BUFFER_WRITE,
+	//			  new DataListener(this));
   // Set OutPort buffer
   addOutPort("out", m_outOut);
   
@@ -77,7 +80,11 @@ RTC::ReturnCode_t VelocitySmoother::onInitialize()
 
   // <rtc-template block="bind_config">
   // Bind variables and configuration variable
-  bindParameter("gain", m_gain, "0.1");
+  // bindParameter("gain", m_gain, "0.1");
+
+  bindParameter("ax", m_ax, "0.1");
+  bindParameter("ay", m_ay, "0.1");
+  bindParameter("aa", m_aa, "0.1");
   // </rtc-template>
   
   return RTC::RTC_OK;
@@ -107,18 +114,48 @@ RTC::ReturnCode_t VelocitySmoother::onShutdown(RTC::UniqueId ec_id)
 
 RTC::ReturnCode_t VelocitySmoother::onActivated(RTC::UniqueId ec_id)
 {
-  return RTC::RTC_OK;
+	m_out.data.vx = m_out.data.vy = m_out.data.va = 0;
+	m_outOut.write();
+
+	m_in.data.vx = m_in.data.vy = m_in.data.va = 0;
+	return RTC::RTC_OK;
 }
 
 
 RTC::ReturnCode_t VelocitySmoother::onDeactivated(RTC::UniqueId ec_id)
 {
+	m_out.data.vx = m_out.data.vy = m_out.data.va = 0;
+	m_outOut.write();
+
+	
   return RTC::RTC_OK;
 }
 
 
 RTC::ReturnCode_t VelocitySmoother::onExecute(RTC::UniqueId ec_id)
 {
+	if (m_inIn.isNew()) {
+		m_inIn.read();
+	}
+
+	double dx = m_in.data.vx - m_out.data.vx;
+	double dy = m_in.data.vy - m_out.data.vy;
+	double da = m_in.data.va - m_out.data.va;
+
+	if (dx > m_ax) m_out.data.vx += m_ax;
+	else if (dx < -m_ax) m_out.data.vx -= m_ax;
+	else m_out.data.vx = m_in.data.vx;
+
+	if (dy > m_ay) m_out.data.vy += m_ay;
+	else if (dy < -m_ay) m_out.data.vy -= m_ay;
+	else m_out.data.vy = m_in.data.vy;
+
+	if (da > m_aa) m_out.data.va += m_aa;
+	else if (dx < -m_aa) m_out.data.va -= m_aa;
+	else m_out.data.va = m_in.data.va;
+
+	setTimestamp(m_out);
+	m_outOut.write();
   return RTC::RTC_OK;
 }
 
